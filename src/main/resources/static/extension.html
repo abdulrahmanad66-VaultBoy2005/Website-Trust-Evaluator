@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chrome Extension · Website Evaluator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        :root {
+            --bg-gradient-start: #667eea;
+            --bg-gradient-end: #764ba2;
+            --card-bg: #ffffff;
+            --text-primary: #1a1a1a;
+            --text-secondary: #4a5568;
+            --text-muted: #718096;
+            --border-light: #edf2f7;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="dark"] {
+            --bg-gradient-start: #1a1a2e;
+            --bg-gradient-end: #16213e;
+            --card-bg: #1e1e2f;
+            --text-primary: #e2e8f0;
+            --text-secondary: #a0aec0;
+            --text-muted: #718096;
+            --border-light: #2d3748;
+            --shadow-color: rgba(0, 0, 0, 0.3);
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
+            min-height: 100vh;
+            padding: 24px;
+            transition: background 0.3s ease;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--card-bg);
+            border: 2px solid var(--border-light);
+            border-radius: 40px;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px var(--shadow-color);
+        }
+
+        .theme-toggle span {
+            color: var(--text-primary);
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding-top: 40px;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--card-bg);
+            color: #667eea;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            margin-bottom: 30px;
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px var(--shadow-color);
+        }
+
+        .main-card {
+            background: var(--card-bg);
+            border-radius: 32px;
+            padding: 48px;
+            box-shadow: 0 25px 50px -12px var(--shadow-color);
+            transition: background 0.3s ease;
+            text-align: center;
+        }
+
+        .extension-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: var(--text-primary);
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .download-section {
+            margin: 40px 0;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            background: linear-gradient(135deg, #38A169, #2F855A);
+            color: white;
+            padding: 18px 40px;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(56, 161, 105, 0.3);
+            border: none;
+            cursor: pointer;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(56, 161, 105, 0.5);
+        }
+
+        .version-badge {
+            display: inline-block;
+            background: #e2e8f0;
+            color: #4a5568;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        [data-theme="dark"] .version-badge {
+            background: #2d3748;
+            color: #a0aec0;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin: 50px 0;
+        }
+
+        .feature-card {
+            background: #f8f9fa;
+            border-radius: 20px;
+            padding: 30px 20px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        [data-theme="dark"] .feature-card {
+            background: #2d3748;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .feature-card h3 {
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            font-size: 20px;
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .install-steps {
+            background: #f8f9fa;
+            border-radius: 24px;
+            padding: 35px;
+            margin: 40px 0;
+            text-align: left;
+        }
+
+        [data-theme="dark"] .install-steps {
+            background: #2d3748;
+        }
+
+        .install-steps h3 {
+            color: var(--text-primary);
+            font-size: 24px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 15px 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .step:last-child {
+            border-bottom: none;
+        }
+
+        .step-number {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .step-content h4 {
+            color: var(--text-primary);
+            margin-bottom: 5px;
+            font-size: 18px;
+        }
+
+        .step-content p {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .privacy-note {
+            background: #e8f4fd;
+            border-radius: 16px;
+            padding: 20px;
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        [data-theme="dark"] .privacy-note {
+            background: #2c5282;
+        }
+
+        .privacy-note p {
+            color: #2c5282;
+        }
+
+        [data-theme="dark"] .privacy-note p {
+            color: #bee3f8;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .main-card { padding: 30px 20px; }
+            .download-btn { padding: 15px 30px; font-size: 16px; }
+            .step { flex-direction: column; text-align: center; }
+            .features-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body data-theme="light">
+<div class="theme-toggle" onclick="toggleTheme()">
+    <span class="theme-toggle-icon" id="themeIcon">🌙</span>
+    <span id="themeText">Dark Mode</span>
+</div>
+
+<div class="container">
+    <a href="/" class="back-btn">← Back to Website Evaluator</a>
+
+    <div class="main-card">
+        <div class="extension-icon">🧩</div>
+        <h1>Website Evaluator</h1>
+        <p class="subtitle">Chrome Extension - Check website safety instantly</p>
+
+        <div class="download-section">
+            <button class="download-btn" id="downloadExtension">
+                ⬇️ Download Chrome Extension
+            </button>
+            <div class="version-badge">Version 1.0.0 · Free · No credit card required</div>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3>Instant Check</h3>
+                <p>Right-click any link to check website safety instantly</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🛡️</div>
+                <h3>Real-time Protection</h3>
+                <p>Get warnings before visiting malicious sites</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h3>Risk Score</h3>
+                <p>See color-coded risk assessment at a glance</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">👥</div>
+                <h3>Community Reviews</h3>
+                <p>Read what others say about websites</p>
+            </div>
+        </div>
+
+        <div class="install-steps">
+            <h3>📖 How to Install</h3>
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h4>Download the extension file</h4>
+                    <p>Click the download button above to get the .crx or .zip file</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h4>Extract the ZIP file (if downloaded as ZIP)</h4>
+                    <p>Right-click the downloaded file and select "Extract All"</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h4>Open Chrome Extensions page</h4>
+                    <p>Type <code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px;">chrome://extensions</code> in your address bar</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <h4>Enable Developer Mode</h4>
+                    <p>Toggle the switch in the top right corner</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">5</div>
+                <div class="step-content">
+                    <h4>Load the extension</h4>
+                    <p>Click "Load unpacked" and select the extracted folder</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">6</div>
+                <div class="step-content">
+                    <h4>Pin the extension</h4>
+                    <p>Click the puzzle icon in Chrome toolbar and pin Website Evaluator</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="privacy-note">
+            <p>🔒 <strong>Privacy First</strong> - The extension only sends URLs to our safety checker. No personal data is collected or stored.</p>
+        </div>
+    </div>
+
+    <div class="footer">
+        Website Evaluator · Protect yourself from phishing and scams
+    </div>
+</div>
+
+<script>
+    function toggleTheme() {
+        const body = document.body;
+        const themeIcon = document.getElementById('themeIcon');
+        const themeText = document.getElementById('themeText');
+
+        if (body.getAttribute('data-theme') === 'light') {
+            body.setAttribute('data-theme', 'dark');
+            themeIcon.textContent = '☀️';
+            themeText.textContent = 'Light Mode';
+        } else {
+            body.setAttribute('data-theme', 'light');
+            themeIcon.textContent = '🌙';
+            themeText.textContent = 'Dark Mode';
+        }
+    }
+
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.setAttribute('data-theme', 'dark');
+        document.getElementById('themeIcon').textContent = '☀️';
+        document.getElementById('themeText').textContent = 'Light Mode';
+    }
+
+    // Create and download extension files when button is clicked
+    document.getElementById('downloadExtension').addEventListener('click', function() {
+        createAndDownloadExtension();
+    });
+
+    function createAndDownloadExtension() {
+        // Create manifest.json content
+        const manifest = {
+            manifest_version: 3,
+            name: "Website Evaluator",
+            version: "1.0.0",
+            description: "Check website safety instantly - Protect yourself from phishing and malicious sites",
+            permissions: ["contextMenus", "activeTab"],
+            background: {
+                service_worker: "background.js"
+            },
+            action: {
+                default_icon: {
+                    "16": "icons/icon16.png",
+                    "48": "icons/icon48.png",
+                    "128": "icons/icon128.png"
+                }
+            },
+            icons: {
+                "16": "icons/icon16.png",
+                "48": "icons/icon48.png",
+                "128": "icons/icon128.png"
+            },
+            host_permissions: ["http://localhost:8080/*", "https://*.website-evaluator.com/*"]
+        };
+
+        // Create background.js content
+        const backgroundJS = `// Website Evaluator Chrome Extension
+chrome.runtime.onInstalled.addListener(() => {
+console.log('Website Evaluator Extension Installed');
+
+// Create context menu item
+chrome.contextMenus.create({
+    id: "check-url",
+    title: "Check website safety with Website Evaluator",
+    contexts: ["link"]
+});
+});
+
+// Handle context menu clicks
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+if (info.menuItemId === "check-url") {
+    const url = encodeURIComponent(info.linkUrl);
+    chrome.tabs.create({ url: \`http://localhost:8080/?check=\${url}\` });
+}
+});
+
+// Handle extension icon click
+chrome.action.onClicked.addListener((tab) => {
+chrome.tabs.create({ url: 'http://localhost:8080/' });
+});`;
+
+        // Create icon SVG (simple placeholder)
+        const iconSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="128" height="128">
+            <rect width="100" height="100" rx="20" fill="url(#grad)"/>
+            <defs>
+                <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+                </linearGradient>
+            </defs>
+            <text x="50" y="65" text-anchor="middle" fill="white" font-size="40" font-weight="bold">🔒</text>
+        </svg>`;
+
+        // Create a zip file with all extension files
+        const zip = new JSZip();
+
+        zip.file("manifest.json", JSON.stringify(manifest, null, 2));
+        zip.file("background.js", backgroundJS);
+        zip.folder("icons").file("icon16.png", iconSVG);
+        zip.folder("icons").file("icon48.png", iconSVG);
+        zip.folder("icons").file("icon128.png", iconSVG);
+
+        // Generate and download zip
+        zip.generateAsync({ type: "blob" }).then(function(content) {
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(content);
+            link.href = url;
+            link.download = 'website-evaluator-extension.zip';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            // Show success message
+            alert('✅ Extension downloaded!\n\nFollow the installation steps above to add it to Chrome.');
+        });
+    }
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</body>
+</html>
